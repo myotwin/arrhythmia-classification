@@ -1,0 +1,27 @@
+{
+  "duplicates_to_be_removed": [
+    "run1b_ca_titration__1.13b_B19__06_0.8_ca++__Take2__raw_data.hdf",
+    "run1b_ca_titration__1.13b_B19__03_0.2_ca++__Take2__raw_data.hdf",
+    "run1b_ca_titration__1.13b_B19__08_1.5_ca++__Take2__raw_data.hdf",
+    "run1b_ca_titration__1.13b_B19__09_2.0_ca++__Take1__raw_data.hdf",
+    "run1b_ca_titration__1.13b_B19__04_0.4_ca++__Take2__raw_data.hdf",
+    "run1b_ca_titration__1.13b_B19__02_0.1_ca++__Take2__raw_data.hdf",
+    "run1b_ca_titration__1.13b_B19__07_1.0_ca++__Take2__raw_data.hdf",
+    "run1b_ca_titration__1.13b_B19__05_0.6_ca++__Take2__raw_data.hdf",
+    "run1b_ca_titration__1.13b_B19__01_0.0_ca++__Take1__raw_data.hdf",
+    "run1b_ca_titration__1.13b_B19__10_4.0_ca++__Take2__raw_data.hdf",
+    "run1b_ca_titration__1.20b_B01__02_0.1_ca++__Take2__raw_data.hdf",
+    "run1b_ca_titration__1.20b_B01__01_0.0_ca++__Take1__raw_data.hdf"
+  ],
+  "out_of_sync": [
+    "run1_nifedipine__1.25_B17__01_0.01uM__Take3__raw_data.hdf",
+    "run1_e-4031__1.17_B02__07_1000nM__Take3__raw_data.hdf",
+    "run1b_e-4031__1.20b_B01__07_1000nM__Take3__raw_data.hdf",
+    "run1_nifedipine__1.28_B02__08_4.0uM__Take3__raw_data.hdf",
+    "run1_ca_titration__1.13_B19__00_baseline__Take2__raw_data.hdf"
+  ],
+  "unavailable_mea_files": [
+    "run1b_ca_titration__1.13b_B19__02_0.2_ca++__Take2__raw_data.hdf",
+    "run1b_ca_titration__1.13b_B19__03_0.2_ca++__Take2__raw_data.hdf"
+  ]
+}

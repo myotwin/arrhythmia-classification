@@ -1,0 +1,13 @@
+__pycache__/
+*.hdf
+*.joblib
+*.pkl
+*.html
+*.csv
+*.png
+!/*.png
+*.json
+!/*.json
+!ground-truth/*.json
+*.txt
+env/
