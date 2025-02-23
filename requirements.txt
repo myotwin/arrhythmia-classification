@@ -1,0 +1,14 @@
+# Data processing and analysis
+pandas==1.5.3
+numpy==1.24.4
+scipy==1.10.1
+scikit-learn==1.3.2
+tsfel==0.1.6
+joblib==1.2.0
+imbalanced-learn==0.12.0
+tables==3.8.0
+plotly==5.14.1
+matplotlib==3.7.1
+openpyxl==3.1.5
+# sudo apt-get install python3-tk
+# cntrl+c enter for canceling labeling

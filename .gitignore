@@ -10,4 +10,5 @@ __pycache__/
 !/*.json
 !ground-truth/*.json
 *.txt
+!requirements.txt
 env/
