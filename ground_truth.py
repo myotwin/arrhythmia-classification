@@ -474,19 +474,19 @@ if __name__ == "__main__":
         help="The folder containing the labeled data with peak information.",
     )
     parser.add_argument(
-        "--preprocessed_data_folder",
+        "--preprocessed_dir",
         type=str,
         default="./Preprocessed/HDFs",
         help="The folder containing the preprocessed data.",
     )
     parser.add_argument(
-        "--raw_data_folder",
+        "--raw_data_dir",
         type=str,
         default="./RawHDFs",
         help="The folder containing the raw data hdf files.",
     )
     parser.add_argument(
-        "--output_folder",
+        "--output_dir",
         type=str,
         default="./GroundTruth",
         help="""Directory for storing ground truth feature data, organized as follows:
@@ -510,9 +510,9 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     ground_truth_generator = ArrythmiaGroundTruthGenerator(
-        args.label_data_folder,
-        args.preprocessed_data_folder,
-        args.raw_data_folder,
-        args.output_folder,
+        label_data_folder=args.label_data_folder,
+        preprocessed_data_folder=args.preprocessed_dir,
+        raw_data_folder=args.raw_data_dir,
+        output_folder=args.output_dir,
     )
     ground_truth_generator.generate()

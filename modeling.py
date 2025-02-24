@@ -336,7 +336,7 @@ class ArrythmiaClassificationModeler:
         base_filename = f"best_window_{best_performing_window_size}s"
 
         # Save the model
-        model_path = os.path.join(model_output_dir, f"model_{base_filename}.pkl")
+        model_path = os.path.join(model_output_dir, f"model_{base_filename}.joblib")
         joblib.dump(best_model, model_path)
         logger.info(f"Saved best model to {model_path}")
 

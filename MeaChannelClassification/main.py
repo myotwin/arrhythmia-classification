@@ -432,7 +432,11 @@ class MEAChannelClassificationController:
         logger.info(
             f"Storing the dataset to disk at {self.model_dir}/classification_dataset.csv"
         )
-        features.to_csv(os.path.join(self.model_dir, "classification_dataset.csv"))
+        features.to_csv(
+            os.path.join(
+                self.model_dir, f"{self.model_prefix}_classification_dataset.csv"
+            )
+        )
         return features
 
     def train_model_with_prediction_plots(self):
