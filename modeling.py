@@ -43,7 +43,7 @@ class ArrythmiaClassificationModeler:
     The output directory is created if it does not exist.
     The output structure is:
         - <model_dir>/<signal_type>/<training_run_timestamp>/
-            - <model_name>.pkl # best performing model
+            - <model_name>.joblib # best performing model
             - <metrics_name>.json # scalar metrics
             - <confusion_matrix_name>.png # confusion matrix
             - <roc_curve_name>.png # roc curve
