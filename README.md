@@ -73,10 +73,10 @@ In this step, we identify the good MEA channels through the use of machine learn
 - We then train a Random Forest classifier to classify the MEA channels into **good**, **medium**, **bad** based on the features extracted.
 - The trained model is then used to classify the good MEA channels in the raw data HDFs and the average of the good MEA channels is taken to generate the final Field potential signal.
 
-This subprocess is performed in [MeaChannelClassification](./MeaChannelClassification.) directory. Technically the process is divided into two parts:
+This subprocess is performed in [MeaChannelClassification](./MeaChannelClassification) directory. Technically the process is divided into two parts:
 
 #### Sub-Step 2.1: Generating Channel Ground Truth Data
-- For this step, we first need to look at the channels from MEA data for all cases available in the dataset. This can be done with [main.py](./MeaChannelClassification/main.py) script in [MeaChannelClassification](./MeaChannelClassification.)
+- For this step, we first need to look at the channels from MEA data for all cases available in the dataset. This can be done with [main.py](./MeaChannelClassification/main.py) script in [MeaChannelClassification](./MeaChannelClassification) directory.
     ```
     python3 main.py --plots 
 
@@ -86,7 +86,7 @@ This subprocess is performed in [MeaChannelClassification](./MeaChannelClassific
     --error_metadata_file <path_to_error_metadata_file> = "../error_metadata.json"
     ```
 - This will generated `8x4` plots for each MEA channel for each case in `<path_to_plot_dir>/raw`. We can manually see the channels and generate the ground truth data.
-- The ground truth data should be stored in a `ground_truth.json` file in the [MeaChannelClassification](./MeaChannelClassification.) directory with the following format:
+- The ground truth data should be stored in a `ground_truth.json` file in the [MeaChannelClassification](./MeaChannelClassification) directory with the following format:
     ```
     {
         "description": "Classification of MEA channels based on quality for N cases, serve as ground truth for MEA channel classification",
@@ -110,7 +110,7 @@ This subprocess is performed in [MeaChannelClassification](./MeaChannelClassific
 
 #### Sub-Step 2.2: Training the MEA Channel Classifier
 - This step used the `ground_truth.json` file to train a Random Forest classifier to classify the MEA channels into **good**, **medium**, **bad** based on the statistical features extracted.
-- This is also done using the [main.py](./MeaChannelClassification/main.py) script in [MeaChannelClassification](./MeaChannelClassification.) directory. The arguments are different for `training` mode:
+- This is also done using the [main.py](./MeaChannelClassification/main.py) script in [MeaChannelClassification](./MeaChannelClassification) directory. The arguments are different for `training` mode:
     ```
     python3 main.py --train --ground_truth_file <path_to_ground_truth_file>
 
@@ -177,7 +177,7 @@ This subprocess is performed in [MeaChannelClassification](./MeaChannelClassific
     ```
 - These files in output directory will be utilized for labeling and generating training data for the arrhythmia classification modeling.
 
-### Step 4: arrhythmia Dataset Preparation
+### Step 4: Arrhythmia Dataset Preparation
 - In this step, we prepare the dataset for the arrhythmia classification model. We first need to label each contraction event for all cases in the dataset as arrhythmic or normal.
 - For this, we create a window of 3.0 seconds (1.5 seconds before and 1.5 seconds after) around each force peak and label the contraction event as arrhythmic if the force signal in this window is arrhythmic or normal otherwise.
 - The same label gets transferred to the calcium and field potential signals for the corresponding contraction event window.
@@ -213,7 +213,7 @@ Technically, this step is divided into two parts:
      - --output_dir is the path to the output directory (will be created if not present, default: ./Labeled)
      - --window_size_seconds is the window size in seconds for labeling (default: 1.5, total window size is 3.0 seconds)
     ```
-- This will generate a csv file for each signal type (force, calcium, field_potential) at `<path_to_output_dir>/Data/<signal_type>.csv`.:
+- This will generate a csv file for each signal type `(force, calcium, field_potential)` at `<path_to_output_dir>/Data/<signal_type>.csv`.
 - These csv files will be used in the next step to create smaller windows and extract statistical features from these signals to generate final training data for the arrhythmia classification models.
 
     **Some Remarks & Caveats:**
@@ -221,7 +221,7 @@ Technically, this step is divided into two parts:
     - The script only saves the label data for the current case after all of the peaks are labeled. So if user cancels the execution midway, the labeled peaks data for the current case will be lost.
     - The script stores the metadata for already processed cases in `<path_to_output_dir>/metadata.json`. This metadata is used to skip already processed cases when the script is executed again.
 
-#### Sub-Step 4.2: Generating Classification Dataset
+#### Sub-Step 4.2: Generating Arrhythmia Classification Dataset
 - In this step, the labeled windows from previous step are used to generate the final training dataset for different window sizes and signal types.
 - This is done using the [ground_truth.py](./ground_truth.py) script. The execution details are as follows:
     ```
@@ -233,11 +233,11 @@ Technically, this step is divided into two parts:
      - --raw_data_dir is the path to the raw data directory (default: ./RawHDFs)
      - --output_dir is the path to the output directory (will be created if not present, default: ./GroundTruth)
     ```
-- This will generate a csv file for each window size from `[0.2, 0.3, 0.5, 0.7, 0.8, 0.9, 1.0, 1.2, 1.3, 1.5]` seconds at `<path_to_output_dir>/<signal_type>/window_<window_size_seconds>s.csv` where `<signal_type>` is `force`, `calcium`, `field_potential`. This csv file contains the statistical features extracted for each contraction event in the dataset for the corresponding window size and signal type.
+- This will generate a csv file for each window size at `<path_to_output_dir>/<signal_type>/window_<window_size_seconds>s.csv`. This csv file contains the statistical features extracted for each contraction event in the dataset for the corresponding window size and signal type.
 - These csv files will be used in the next step to train the arrhythmia classification models.
 
 ### Step 5: Modeling & Evaluation
-- In this step, we train the arrhythmia classification models for each signal type (force, calcium, field potential) using the ground truth data generated in the previous step.
+- In this step, we train the arrhythmia classification models for each signal type using the ground truth data generated in the previous step.
 - A different random forest with balanced class weights is trained for each signal type and window size.
 - The best performing window model for each signal type is selected based on a criteria defined by the user from following options:
     ```
@@ -262,17 +262,17 @@ Technically, this step is divided into two parts:
      - --evaluation_criteria is the evaluation criteria for selecting the best model (default: weighted_geometric_mean, Options: [f1_positive_class, weighted_geometric_mean, balanced_accuracy, roc_auc])
     ```
 - This will train the models and report the best window size performing model for each signal type. The output artifacts for each signal type are stored in timestamped directory for uniqueness. The following artifact structure is  generated as result of the execution:
-```
-📁 <path_to_model_dir>/
-├── 📁 <signal_type (force, calcium, field_potential)>/
-│   ├── 📁 training_run_<timestamp>/
-│   │   ├── training_metrics.csv: A csv file containing the test set metrics for each window size.
-│   │   ├── classification_report_best_window_<best_window_size>s.txt: The classification report for the best window size model on test set.
-│   │   ├── metrics_best_window_<best_window_size>s.json: The metrics for the best window size model on test set and cross validation metrics.
-│   │   ├── confusion_matrix_best_window_<best_window_size>s.png: The confusion matrix for the best window size model on test set.
-│   │   ├── roc_curve_best_window_<best_window_size>s.png: The ROC curve for the best window size model.
-│   │   ├── model_best_window_<best_window_size>s.joblib: The best trained model for classification for the signal type based on the evaluation criteria.
-```
+    ```
+    📁 <path_to_model_dir>/
+    ├── 📁 <signal_type (force, calcium, field_potential)>/
+    │   ├── 📁 training_run_<timestamp>/
+    │   │   ├── training_metrics.csv: A csv file containing the test set metrics for each window size.
+    │   │   ├── classification_report_best_window_<best_window_size>s.txt: The classification report for the best window size model on test set.
+    │   │   ├── metrics_best_window_<best_window_size>s.json: The metrics for the best window size model on test set and cross validation metrics.
+    │   │   ├── confusion_matrix_best_window_<best_window_size>s.png: The confusion matrix for the best window size model on test set.
+    │   │   ├── roc_curve_best_window_<best_window_size>s.png: The ROC curve for the best window size model.
+    │   │   ├── model_best_window_<best_window_size>s.joblib: The best trained model for classification for the signal type based on the evaluation criteria.
+    ```
 - The best performing model for each signal type is stored in `<path_to_model_dir>/<signal_type>/training_run_<timestamp>/model_best_window_<best_window_size>s.joblib`.
 - The user can inspect the model's performance using the metrics and plots stored in the directory.
 - The model can finally be used to predict whether a contraction event is arrhythmic or normal based on statistical features extracted around each contraction peak detected in the force signal. 
