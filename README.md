@@ -265,14 +265,13 @@ Technically, this step is divided into two parts:
     ```
     📁 <path_to_model_dir>/
     ├── 📁 <signal_type (force, calcium, field_potential)>/
-    │   ├── 📁 <feature_type (statistical, all)>/
     │   │   ├── training_run_<timestamp>/
     │   │   ├── training_metrics.csv: A csv file containing the test set metrics for each window size.
-    │   │   ├── classification_report_best_window_<best_window_size>s.txt: The classification report for the best window size model on test set.
-    │   │   ├── metrics_best_window_<best_window_size>s.json: The metrics for the best window size model on test set and cross validation metrics.
-    │   │   ├── confusion_matrix_best_window_<best_window_size>s.png: The confusion matrix for the best window size model on test set.
-    │   │   ├── roc_curve_best_window_<best_window_size>s.png: The ROC curve for the best window size model.
-    │   │   ├── model_best_window_<best_window_size>s.joblib: The best trained model for classification for the signal type based on the evaluation criteria.
+    │   │   ├── classification_report_best_window_<feature_type>_<best_window_size>s.txt: The classification report for the best window size model on test set.
+    │   │   ├── metrics_best_window_<feature_type>_<best_window_size>s.json: The metrics for the best window size model on test set and cross validation metrics.
+    │   │   ├── confusion_matrix_best_window_<feature_type>_<best_window_size>s.png: The confusion matrix for the best window size model on test set.
+    │   │   ├── roc_curve_best_window_<feature_type>_<best_window_size>s.png: The ROC curve for the best window size model.
+    │   │   ├── model_best_window_<feature_type>_<best_window_size>s.joblib: The best trained model for classification for the signal type based on the evaluation criteria.
     ```
 - The best performing model for each signal type is stored in `<path_to_model_dir>/<signal_type>/training_run_<timestamp>/model_best_window_<feature_type>_<best_window_size>s.joblib`.
 - The user can inspect the model's performance using the metrics and plots stored in the directory.
