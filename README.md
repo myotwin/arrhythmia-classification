@@ -47,7 +47,7 @@ pip install -r requirements.txt
 ```
 
 ### Step 1: Generating Raw Data HDFs
-- First, we need to generate HDFs from the raw data. This is done using the [`raw_transform.py`](./raw_transform.py) script. This script will generate HDFs for each concentration level in the raw data directory and place it in the output directory. The output HDFs will have the following file name format: `<experiment_name>_<bct_id>_<concentration_level>_<take_number>__raw_data.hdf`.   
+- First, we need to generate HDFs from the raw data. This is done using the [`raw_transform.py`](./raw_transform.py) script. This script will generate HDFs for each concentration level in the raw data directory and place it in the output directory. The output HDFs will have the following file name format: `<experiment_name>__<bct_id>__<concentration_level>__<take_number>__raw_data.hdf`.   
 
     ```
     python3 raw_transform.py --raw-data-dir <path_to_raw_data> --output-dir <path_to_output_dir> --calcium_sampling_rate <calcium_sampling_rate_in_Hz> 
@@ -171,7 +171,7 @@ This subprocess is performed in [MeaChannelClassification](./MeaChannelClassific
 - This will generate the preprocessed data in the output directory with the following structure:
     ```
     📁 <output_dir>/
-    ├── 📁 HDFs # HDFs of the preprocessed data with file name format: <experiment_name>_<bct_id>_<concentration_level>_<take_number>.hdf
+    ├── 📁 HDFs # HDFs of the preprocessed data with file name format: <experiment_name>__<bct_id>__<concentration_level>__<take_number>.hdf
     ├── 📁 Plots # Plots of the preprocessed vs raw data (force, calcium, field potential if applicable) alongwith detected force peaks for each case.
     ├── 📁 Peaks # Detected force peaks index information for each case in json format.
     ```
