@@ -181,7 +181,7 @@ This subprocess is performed in [MeaChannelClassification](./MeaChannelClassific
 - In this step, we prepare the dataset for the arrhythmia classification model. We first need to label each contraction event for all cases in the dataset as arrhythmic or normal.
 - For this, we create a window of 3.0 seconds (1.5 seconds before and 1.5 seconds after) around each force peak and label the contraction event as arrhythmic if the force signal in this window is arrhythmic or normal otherwise.
 - The same label gets transferred to the calcium and field potential signals for the corresponding contraction event window.
-- In the next step, we divide this larger window into smaller subsizes of `[0.2, 0.3, 0.5, 0.7, 0.8, 0.9, 1.0, 1.2, 1.3, 1.5]` seconds and extract statistical features from these signals, again using TSFEL.
+- In the next step, we divide this larger window into smaller subsizes of `[0.2, 0.3, 0.5, 0.7, 0.8, 0.9, 1.0, 1.2, 1.3, 1.5]` seconds and extract `statistical` and `all` features from these signals, again using TSFEL. `all` combines all features available in TSFEL.
 - In this way, we have a different ground truth for each window size and each signal type.
 - This ground truth data will be used in the final step to train the arrhythmia classification models and evaluate their performance.
 
@@ -233,7 +233,7 @@ Technically, this step is divided into two parts:
      - --raw_data_dir is the path to the raw data directory (default: ./RawHDFs)
      - --output_dir is the path to the output directory (will be created if not present, default: ./GroundTruth)
     ```
-- This will generate a csv file for each window size at `<path_to_output_dir>/<signal_type>/window_<window_size_seconds>s.csv`. This csv file contains the statistical features extracted for each contraction event in the dataset for the corresponding window size and signal type.
+- This will generate a csv file for each window size at `<path_to_output_dir>/<signal_type>/<feature_type>/window_<window_size_seconds>s.csv`. This csv file contains the `statistical` and `all` features extracted for each contraction event in the dataset for the corresponding window size and signal type.
 - These csv files will be used in the next step to train the arrhythmia classification models.
 
 ### Step 5: Modeling & Evaluation
@@ -265,7 +265,8 @@ Technically, this step is divided into two parts:
     ```
     📁 <path_to_model_dir>/
     ├── 📁 <signal_type (force, calcium, field_potential)>/
-    │   ├── 📁 training_run_<timestamp>/
+    │   ├── 📁 <feature_type (statistical, all)>/
+    │   │   ├── training_run_<timestamp>/
     │   │   ├── training_metrics.csv: A csv file containing the test set metrics for each window size.
     │   │   ├── classification_report_best_window_<best_window_size>s.txt: The classification report for the best window size model on test set.
     │   │   ├── metrics_best_window_<best_window_size>s.json: The metrics for the best window size model on test set and cross validation metrics.
@@ -273,7 +274,7 @@ Technically, this step is divided into two parts:
     │   │   ├── roc_curve_best_window_<best_window_size>s.png: The ROC curve for the best window size model.
     │   │   ├── model_best_window_<best_window_size>s.joblib: The best trained model for classification for the signal type based on the evaluation criteria.
     ```
-- The best performing model for each signal type is stored in `<path_to_model_dir>/<signal_type>/training_run_<timestamp>/model_best_window_<best_window_size>s.joblib`.
+- The best performing model for each signal type is stored in `<path_to_model_dir>/<signal_type>/training_run_<timestamp>/model_best_window_<feature_type>_<best_window_size>s.joblib`.
 - The user can inspect the model's performance using the metrics and plots stored in the directory.
 - The model can finally be used to predict whether a contraction event is arrhythmic or normal based on statistical features extracted around each contraction peak detected in the force signal. 
 - The statistical features should be extracted with the best window size model for the corresponding signal type.

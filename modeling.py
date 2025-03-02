@@ -255,10 +255,12 @@ class ArrythmiaClassificationModeler:
 
         metrics_order.extend(remaining_metrics)
 
-        def sort_key(window_size):
+        def sort_key(feature_type_window_size):
             # Create tuple of metrics for sorting (negative values for descending sort)
+            window_size = feature_type_window_size.split("_")[-1]
             metric_values = [
-                -models_dict[window_size]["metrics"][m] for m in metrics_order
+                -models_dict[feature_type_window_size]["metrics"][m]
+                for m in metrics_order
             ]
             # Append window size as final tiebreaker (convert to float for proper comparison)
             metric_values.append(float(window_size))
@@ -277,10 +279,11 @@ class ArrythmiaClassificationModeler:
         """
         logger.info(f"Storing training metrics for signal type {signal_type}")
         model_metrics_df = pd.DataFrame()
-        for window_size in model_metrics:
-            metrics = model_metrics[window_size]["metrics"]
+        for feature_type_window_size in model_metrics:
+            metrics = model_metrics[feature_type_window_size]["metrics"]
             selected_metrics = {
-                "window_size": window_size,
+                "feature_type": feature_type_window_size.split("_")[0],
+                "window_size": feature_type_window_size.split("_")[-1],
                 "f1_positive_class": metrics["f1_positive_class"],
                 "weighted_geometric_mean": metrics["weighted_geometric_mean"],
                 "balanced_accuracy": metrics["balanced_accuracy"],
@@ -343,7 +346,8 @@ class ArrythmiaClassificationModeler:
         # Extract scalar metrics (add timestamp)
         scalar_metrics = {
             "training_timestamp": self._timestamp,
-            "window_size": best_performing_window_size,
+            "feature_type": best_performing_window_size.split("_")[0],
+            "window_size": best_performing_window_size.split("_")[-1],
             "f1_positive_class": best_metrics["f1_positive_class"],
             "weighted_geometric_mean": best_metrics["weighted_geometric_mean"],
             "balanced_accuracy": best_metrics["balanced_accuracy"],
@@ -372,7 +376,7 @@ class ArrythmiaClassificationModeler:
         )
         cm_display.plot(cmap="Blues", values_format="d")
         plt.title(
-            f"Confusion Matrix - {signal_type}\n(Window: {best_performing_window_size}s, {self._timestamp})"
+            f"Confusion Matrix - {signal_type}\n(Feature Type: {best_performing_window_size.split('_')[0]}, Window: {best_performing_window_size.split('_')[-1]}s, {self._timestamp})"
         )
         cm_path = os.path.join(
             model_output_dir, f"confusion_matrix_{base_filename}.png"
@@ -391,7 +395,7 @@ class ArrythmiaClassificationModeler:
         roc_display.plot()
         plt.plot([0, 1], [0, 1], "k--")  # Add diagonal line
         plt.title(
-            f"ROC Curve - {signal_type}\n(Window: {best_performing_window_size}s, {self._timestamp})"
+            f"ROC Curve - {signal_type}\n(Feature Type: {best_performing_window_size.split('_')[0]}, Window: {best_performing_window_size.split('_')[-1]}s, {self._timestamp})"
         )
         roc_path = os.path.join(model_output_dir, f"roc_curve_{base_filename}.png")
         plt.savefig(roc_path, bbox_inches="tight", dpi=300)
@@ -405,7 +409,8 @@ class ArrythmiaClassificationModeler:
         with open(report_path, "w") as f:
             f.write(f"Training Run: {self._timestamp}\n")
             f.write(f"Signal Type: {signal_type}\n")
-            f.write(f"Window Size: {best_performing_window_size}s\n\n")
+            f.write(f"Feature Type: {best_performing_window_size.split('_')[0]}\n")
+            f.write(f"Window Size: {best_performing_window_size.split('_')[-1]}s\n\n")
             f.write(best_metrics["classification_report"])
         logger.info(f"Saved classification report to {report_path}")
 
@@ -420,23 +425,31 @@ class ArrythmiaClassificationModeler:
         Args:
             signal_type (str): Type of signal (force/calcium/field_potential)
         """
-        # get all the files in the ground truth directory for the signal type
+        # get all the files in the ground truth directory for the signal type and feature type
         logger.info(f"Training models for signal type {signal_type}")
-        files = os.listdir(os.path.join(self.ground_truth_dir, signal_type))
+        file_paths = [
+            os.path.join(root, file)
+            for root, dirs, files in os.walk(
+                os.path.join(self.ground_truth_dir, signal_type)
+            )
+            for file in files
+            if file.endswith(".csv")
+        ]
         models_dict = {}
-        for file in sorted(files):
+        for file_path in sorted(file_paths):
             # load the features
+            file = os.path.basename(file_path)
+            # get the directory of file as feature type
+            feature_type = os.path.dirname(file_path).split("/")[-1]
             window_size = file.split("_")[1].replace(".csv", "").replace("s", "")
             logger.info(
-                f"Training model for window size {window_size} for signal type {signal_type}"
+                f"Training model for window size {window_size} for signal type {signal_type} and feature type `{feature_type}`"
             )
-            models_dict[window_size] = {}
-            X, y = self._load_training_features_for_window_size(
-                os.path.join(self.ground_truth_dir, signal_type, file)
-            )
+            models_dict[f"{feature_type}_{window_size}"] = {}
+            X, y = self._load_training_features_for_window_size(file_path)
             model, metrics = self._train_model_for_window_size(X, y)
-            models_dict[window_size]["model"] = model
-            models_dict[window_size]["metrics"] = metrics
+            models_dict[f"{feature_type}_{window_size}"]["model"] = model
+            models_dict[f"{feature_type}_{window_size}"]["metrics"] = metrics
 
         self._store_specific_model_metrics(models_dict, signal_type)
 
@@ -444,7 +457,7 @@ class ArrythmiaClassificationModeler:
             models_dict
         )
         logger.info(
-            f"Best performing window size for signal type {signal_type} is {best_performing_window_size} with {self.evaluation_criteria} {models_dict[best_performing_window_size]['metrics'][self.evaluation_criteria]}"
+            f"Best performing window size for signal type {signal_type} is {best_performing_window_size.split('_')[-1]}s of `{best_performing_window_size.split('_')[0]}` feature type with {self.evaluation_criteria} {models_dict[best_performing_window_size]['metrics'][self.evaluation_criteria]}"
         )
         self._save_best_model_with_metrics(
             best_performing_window_size, models_dict, signal_type

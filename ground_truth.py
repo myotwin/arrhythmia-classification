@@ -101,7 +101,7 @@ class ArrythmiaGroundTruthGenerator:
         """
         Configure TSFEL feature extraction settings.
 
-        Customizes statistical feature extraction parameters, particularly ECDF percentiles.
+        Customizes statistical and all feature extraction parameters, particularly ECDF percentiles.
         """
         statistical_features_cfg = tsfel.get_features_by_domain("statistical")
         statistical_features_cfg["statistical"]["ECDF Percentile"]["parameters"][
@@ -115,6 +115,19 @@ class ArrythmiaGroundTruthGenerator:
             0.9,
         ]
         self.statistical_features_cfg = statistical_features_cfg
+
+        all_features_cfg = tsfel.get_features_by_domain()
+        all_features_cfg["statistical"]["ECDF Percentile"]["parameters"][
+            "percentile"
+        ] = [
+            0.1,
+            0.2,
+            0.4,
+            0.6,
+            0.8,
+            0.9,
+        ]
+        self.all_features_cfg = all_features_cfg
 
     def _load_data(self):
         """
@@ -224,7 +237,9 @@ class ArrythmiaGroundTruthGenerator:
         else:
             return data_df, False
 
-    def _append_record_to_dataset(self, record_df, signal_type, window_size):
+    def _append_record_to_dataset(
+        self, record_df, signal_type, window_size, dataset_type="statistical"
+    ):
         """
         Append a record to the dataset for a given signal type and window size.
 
@@ -233,7 +248,8 @@ class ArrythmiaGroundTruthGenerator:
             signal_type: Type of signal
             window_size: Size of window in seconds
         """
-        dataset_dir = os.path.join(self.output_folder, signal_type)
+        dataset_dir = os.path.join(self.output_folder, signal_type, dataset_type)
+        os.makedirs(dataset_dir, exist_ok=True)
         dataset_file_name = os.path.join(dataset_dir, f"window_{window_size}s.csv")
         if not os.path.exists(dataset_dir):
             os.makedirs(dataset_dir, exist_ok=True)
@@ -282,12 +298,13 @@ class ArrythmiaGroundTruthGenerator:
         Process:
         1. Remove interpolated data if necessary
         2. Calculate sampling frequency
-        3. Extract statistical features using TSFEL
+        3. Extract `statistical` and `all` features using TSFEL
         4. Format and save features to appropriate CSV file
 
         Features saved include:
         - Metadata (identifier, times, window parameters)
         - Statistical features (mean, std, percentiles, etc.)
+        - All features (all features available in TSFEL)
         - Label (arrhythmic/normal)
 
         Args:
@@ -359,9 +376,35 @@ class ArrythmiaGroundTruthGenerator:
         features_df = pd.DataFrame([features_dict])
         if not features_df.empty:
             logger.info(
-                f"Storing ground truth record for {identifier} with window {window_size}s at {force_peak_time}s for {signal_type}."
+                f"Storing `statistical` ground truth record for {identifier} with window {window_size}s at {force_peak_time}s for {signal_type}."
             )
             self._append_record_to_dataset(features_df, signal_type, window_size)
+
+        # Extract features using all features
+        all_features = tsfel.time_series_features_extractor(
+            self.all_features_cfg,
+            window_data[data_column_name].values,
+            fs,
+            verbose=0,
+        )
+        # Remove the prefix "0_" from the feature names
+        col_name = [col.replace("0_", "") for col in all_features.columns.to_list()]
+        all_features.columns = col_name
+        all_features_dict = all_features.to_dict(orient="records")[0]
+        # Remove spaces and convert to lowercase for feature names
+        all_features_dict = {
+            f"{k.replace(' ', '_').lower()}": np.round(v, 3)
+            for k, v in all_features_dict.items()
+        }
+        all_features_dict = dict(base_record, **all_features_dict)
+        all_features_df = pd.DataFrame([all_features_dict])
+        if not all_features_df.empty:
+            logger.info(
+                f"Storing `all` ground truth record for {identifier} with window {window_size}s at {force_peak_time}s for {signal_type}."
+            )
+            self._append_record_to_dataset(
+                all_features_df, signal_type, window_size, "all"
+            )
 
     def _generate_ground_truth_for_signal_type(
         self, signal_type: str = FORCE_SIGNAL_TYPE
