@@ -92,7 +92,7 @@ This subprocess is performed in [MeaChannelClassification](./MeaChannelClassific
         "description": "Classification of MEA channels based on quality for N cases, serve as ground truth for MEA channel classification",
         "experiments": [
             {
-                "name": "<case_name>", # <experiment_name>_<bct_id>_<concentration_level>_<take_number>
+                "name": "<case_name>", # <experiment_name>__<bct_id>__<concentration_level>__<take_number>
                 "good_labels": ["<channel_1>", "<channel_2>", ...],
                 "medium_labels": ["<channel_1>", "<channel_2>", ...],
             }
