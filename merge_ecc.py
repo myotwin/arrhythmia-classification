@@ -204,7 +204,7 @@ class ECCMerger:
             (
                 y,
                 *_,
-            ) = general_utils.butter_lowpass_filter(
+            ) = general_utils.filter_lowpass(
                 good_channels_df[col],
                 cutoff=self.mea_good_channels_filter_params["cutoff"],
                 fs=fs,
