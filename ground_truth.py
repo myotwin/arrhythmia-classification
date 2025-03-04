@@ -157,6 +157,7 @@ class ArrythmiaGroundTruthGenerator:
         self,
         identifier: str,
         signal_type: str,
+        feature_type: str,
         window_size: float,
         force_peak_time: float,
         force_peak_idx: int,
@@ -174,7 +175,7 @@ class ArrythmiaGroundTruthGenerator:
         Returns:
             bool: True if features exist, False otherwise
         """
-        dataset_dir = os.path.join(self.output_folder, signal_type)
+        dataset_dir = os.path.join(self.output_folder, signal_type, feature_type)
         dataset_file_name = os.path.join(dataset_dir, f"window_{window_size}s.csv")
         if os.path.exists(dataset_file_name):
             dataset_df = pd.read_csv(dataset_file_name)
@@ -441,6 +442,7 @@ class ArrythmiaGroundTruthGenerator:
                     exist = self._check_if_window_record_exists(
                         identifier,
                         signal_type,
+                        "statistical",
                         window_size,
                         force_peak_time,
                         force_peak_idx,
@@ -448,7 +450,22 @@ class ArrythmiaGroundTruthGenerator:
 
                     if exist:
                         logger.info(
-                            f"Record exists for window {window_size}s at {force_peak_time}s for {signal_type}. Continuing..."
+                            f"Record exists for window {window_size}s at {force_peak_time}s for {signal_type} `statistical`. Continuing..."
+                        )
+                        continue
+
+                    exist = self._check_if_window_record_exists(
+                        identifier,
+                        signal_type,
+                        "all",
+                        window_size,
+                        force_peak_time,
+                        force_peak_idx,
+                    )
+
+                    if exist:
+                        logger.info(
+                            f"Record exists for window {window_size}s at {force_peak_time}s for {signal_type} `all`. Continuing..."
                         )
                         continue
 

@@ -454,10 +454,12 @@ class MEAChannelClassificationController:
         X = classification_dataset.drop(columns=["identifier", "class"])
         y = classification_dataset["class"]
         X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=self.test_size, random_state=self.random_state
+            X, y, test_size=self.test_size, random_state=self.random_state, stratify=y
         )
         model = RandomForestClassifier(
-            n_estimators=self.n_estimators, random_state=self.random_state
+            n_estimators=self.n_estimators,
+            random_state=self.random_state,
+            class_weight="balanced",
         )
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)

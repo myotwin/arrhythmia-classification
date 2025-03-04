@@ -52,6 +52,7 @@ class ArrythmiaLabeler:
     def __init__(
         self,
         preprocessed_dir: str = "./Preprocessed",
+        raw_dir: str = "./RawHDFs",
         error_metadata_file: str = "./error_metadata.json",
         output_dir: str = "./Labeled",
         window_size_seconds: float = 1.5,
@@ -61,6 +62,7 @@ class ArrythmiaLabeler:
         self.preprocessed_peaks_dir = os.path.join(preprocessed_dir, "Peaks")
         self.error_metadata_file = error_metadata_file
         self.output_dir = output_dir
+        self.raw_dir = raw_dir
         self.window_size_seconds = window_size_seconds
 
         # Validate paths
@@ -78,6 +80,9 @@ class ArrythmiaLabeler:
         Raises:
             AssertionError: If any required path does not exist
         """
+        assert os.path.exists(
+            self.raw_dir,
+        ), "Raw data directory does not exist"
         assert os.path.exists(
             self.preprocessed_data_dir
         ), "Preprocessed data directory does not exist"
@@ -270,6 +275,9 @@ class ArrythmiaLabeler:
         preprocessed_data = pd.read_hdf(
             os.path.join(self.preprocessed_data_dir, f"{case_identifier}.hdf")
         )
+        raw_data = pd.read_hdf(
+            os.path.join(self.raw_dir, f"{case_identifier}__raw_data.hdf")
+        )
         preprocessed_peaks_path = os.path.join(
             self.preprocessed_peaks_dir, f"{case_identifier}.json"
         )
@@ -298,7 +306,10 @@ class ArrythmiaLabeler:
 
             # Force
             row = 0
-            ax[row].plot(preprocessed_data.index, preprocessed_data.force)
+            ax[row].plot(
+                preprocessed_data.loc[: raw_data.force.dropna().index[-1]].index,
+                preprocessed_data.loc[: raw_data.force.dropna().index[-1]].force,
+            )
             ax[row].plot(
                 preprocessed_data.iloc[[force_peak_idx]].index,
                 preprocessed_data.iloc[[force_peak_idx]].force,
@@ -310,7 +321,10 @@ class ArrythmiaLabeler:
 
             # Calcium
             row += 1
-            ax[row].plot(preprocessed_data.index, preprocessed_data.calc)
+            ax[row].plot(
+                preprocessed_data.loc[: raw_data.calc.dropna().index[-1]].index,
+                preprocessed_data.loc[: raw_data.calc.dropna().index[-1]].calc,
+            )
             ax[row].set_title(f"Calcium")
             ax[row].set_xlabel("Time (s)")
             ax[row].set_ylabel("Calcium (a.u.)")
@@ -326,11 +340,11 @@ class ArrythmiaLabeler:
             force_time_idx = preprocessed_data.iloc[[force_peak_idx]].index[0]
             window_start = np.maximum(
                 np.round(force_time_idx - self.window_size_seconds, 4),
-                preprocessed_data.index[0],
+                preprocessed_data.force.dropna().index[0],
             )
             window_end = np.minimum(
                 np.round(force_time_idx + self.window_size_seconds, 4),
-                preprocessed_data.index[-1],
+                preprocessed_data.force.dropna().index[-1],
             )
 
             row += 1
@@ -527,9 +541,16 @@ if __name__ == "__main__":
         default=1.5,
         help="Window size in seconds for labeling",
     )
+    parser.add_argument(
+        "--raw_dir",
+        type=str,
+        default="./RawHDFs",
+        help="Path to the directory containing raw data",
+    )
     args = parser.parse_args()
     labeler = ArrythmiaLabeler(
         args.preprocessed_dir,
+        args.raw_dir,
         args.error_metadata_file,
         args.output_dir,
         args.window_size_seconds,

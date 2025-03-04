@@ -209,30 +209,33 @@ class ECCMerger:
                 cutoff=self.mea_good_channels_filter_params["cutoff"],
                 fs=fs,
                 order=self.mea_good_channels_filter_params["order"],
+                unormalized_cutoff=True,
             )
             good_channels_df[col] = pd.Series(y, index=df_raw[col].index)
 
         return good_channels_df.mean(axis=1), good_channels
 
     def _generate_and_save_case_plot(
-        self, df_raw, df_merge, force_peaks, good_channels, identifier
+        self, df_raw, df_merge, force_peaks, calc_peaks, good_channels, identifier
     ):
         """
         Generate and save a single case plot at the {output directory}/Plots directory.
         1. Force Raw vs Preprocessed
         2. Force Preprocessed Peaks
         3. Calcium Raw vs Preprocessed
-        4. MEA Preprocessed
+        4. Calcium Preprocessed Peaks
+        5. MEA Preprocessed
 
         Args:
             df_raw: Raw data
             df_merge: Merged data
             force_peaks: Force peaks
+            calc_peaks: Calcium peaks
             good_channels: Good MEA channels
             identifier: Case identifier
 
         """
-        row_count = 3
+        row_count = 4
         if "mea" in df_merge.columns:
             row_count += 1
 
@@ -245,6 +248,7 @@ class ECCMerger:
                 "Force Raw vs Preprocessed",
                 "Force Preprocessed Peaks",
                 "Calcium Raw vs Preprocessed",
+                "Calcium Preprocessed Peaks",
                 (
                     f"MEA ({self.mea_good_channels_filter_params['cutoff']} Hz, {self.mea_good_channels_filter_params['order']}th Order) [{', '.join(good_channels)}]"
                     if "mea" in df_merge.columns
@@ -317,6 +321,26 @@ class ECCMerger:
             col=1,
             secondary_y=True,
         )
+        # Preprocessed Calcium Peaks
+        row += 1
+        fig.add_trace(
+            go.Scatter(x=df_merge.index, y=df_merge.calc, name="Calcium Preprocessed"),
+            row=row,
+            col=1,
+            secondary_y=False,
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=df_merge.iloc[calc_peaks].index,
+                y=df_merge.iloc[calc_peaks].calc,
+                mode="markers",
+                name="Calcium Peaks",
+                marker=dict(color="red", size=10),
+            ),
+            row=row,
+            col=1,
+            secondary_y=False,
+        )
 
         if "mea" in df_merge.columns:
             row += 1
@@ -340,7 +364,9 @@ class ECCMerger:
         )
         fig.write_html(os.path.join(self.output_dir, "Plots", f"{identifier}.html"))
 
-    def _save_preprocessed_data_and_peaks_info(self, df_merge, force_peaks, identifier):
+    def _save_preprocessed_data_and_peaks_info(
+        self, df_merge, force_peaks, calc_peaks, identifier
+    ):
         """
         Save the preprocessed data and peaks information at the {output directory}/HDFs and {output directory}/Peaks directories.
 
@@ -355,12 +381,31 @@ class ECCMerger:
         )
         peaks_info = {
             "force_peaks_indexes": force_peaks.tolist(),
+            "calc_peaks_indexes": calc_peaks.tolist(),
         }
         json.dump(
             peaks_info,
             open(os.path.join(self.output_dir, "Peaks", f"{identifier}.json"), "w"),
             cls=series_utils.NumpyEncoder,
         )
+
+    def _remap_calc_peaks(self, df_merge, calc_peaks, calc_nans_index_mapping=None):
+        calc_data = df_merge.calc.copy()
+        corr_factor = 1 + 0.0028388903486529877  # in sec per recorded sec
+        _tmax = calc_data.index[-1]
+        calc_data.index = np.round(calc_data.index.to_numpy() * corr_factor, decimals=2)
+        calc_data = calc_data.loc[:_tmax]
+        if calc_nans_index_mapping is not None:
+            calc_remap_peak_indexes = calc_data.iloc[
+                calc_nans_index_mapping[calc_peaks]
+            ].index
+        else:
+            calc_remap_peak_indexes = calc_data.iloc[calc_peaks].index
+        calc_remap_peak_indexes = np.where(
+            df_merge.calc.index.isin(calc_remap_peak_indexes)
+        )[0]
+        calc_peaks = calc_remap_peak_indexes
+        return calc_peaks
 
     def _process_raw_file(self, hdf_file):
         df_raw = pd.read_hdf(hdf_file, key="raw_data")
@@ -429,14 +474,13 @@ class ECCMerger:
             left_index=True,
             right_index=True,
         )
-        # Fill NaNs with linear interpolation for Calcium with undefined values after time correction
-        df_merge = df_merge.interpolate("linear")
         good_channels = None
         # Add MEA if it is not filtered out
         if self.mea_cases_filter in hdf_file:
             mea_avg_filtered_good_channels, good_channels = (
                 self._average_filtered_good_mea_channels(df_raw)
             )
+
             df_merge = pd.merge(
                 df_merge,
                 mea_avg_filtered_good_channels.rename("mea"),
@@ -446,19 +490,29 @@ class ECCMerger:
             )
             # Fill NaNs with linear interpolation for force and calc as MEA has higher resolution 2KHz > 100 Hz
             df_merge = df_merge.interpolate("linear")
-            # truncate to the data to the force index length
-            df_merge = df_merge.loc[: force.index[-1]]
 
             # force peaks were determined on Non Null data and we need to remap them to the new index with higher resolution (due to MEA) having NaNs
             force_nans_index_mapping = series_utils.remap_indexes_after_nan_removal(
                 df_raw.force
             )
+            calc_nans_index_mapping = series_utils.remap_indexes_after_nan_removal(
+                df_raw.calc
+            )
             force_peaks = force_nans_index_mapping[force_peaks]
+            calc_peaks = self._remap_calc_peaks(
+                df_merge, calc_peaks, calc_nans_index_mapping
+            )
+        else:
+            # Fill NaNs with linear interpolation for Calcium with undefined values after time correction
+            df_merge = df_merge.interpolate("linear")
+            calc_peaks = self._remap_calc_peaks(df_merge, calc_peaks)
         identifier = hdf_file.split("/")[-1].replace("__raw_data.hdf", "")
         self._generate_and_save_case_plot(
-            df_raw, df_merge, force_peaks, good_channels, identifier
+            df_raw, df_merge, force_peaks, calc_peaks, good_channels, identifier
         )
-        self._save_preprocessed_data_and_peaks_info(df_merge, force_peaks, identifier)
+        self._save_preprocessed_data_and_peaks_info(
+            df_merge, force_peaks, calc_peaks, identifier
+        )
 
     def execute(self) -> None:
         """
@@ -476,9 +530,23 @@ class ECCMerger:
         try:
             hdf_files = self._read_valid_raw_hdf_paths()
 
+            # error_unaligned_mea_files = [
+            #     "./RawHDFs/run1b_ca_titration__1.13b_B19__01_0.1_ca++__Take2__raw_data.hdf",
+            #     "./RawHDFs/run1b_e-4031__1.20b_B01__05_300nM__Take3__raw_data.hdf",
+            #     "./RawHDFs/run1b_ca_titration__1.13b_B19__09_4.0_ca++__Take2__raw_data.hdf",
+            #     "./RawHDFs/run1b_nifedipine__1.30b_B03__04_0.2uM__Take3__raw_data.hdf",
+            #     "./RawHDFs/run1b_ca_titration__1.20b_B01__06_1.0_ca++__Take2__raw_data.hdf",
+            #     "./RawHDFs/run1b_nifedipine__1.30b_B03__02_0.03uM__Take3__raw_data.hdf",
+            #     "./RawHDFs/run1b_e-4031__1.17b_B02__05_300nM__Take3__raw_data.hdf",
+            #     "./RawHDFs/run1b_nifedipine__1.30b_B03__08_4.0uM__Take3__raw_data.hdf",
+            #     "./RawHDFs/run1b_nifedipine__1.28b_B02__02_0.03uM__Take3__raw_data.hdf",
+            # ]
+
             self._load_mea_channel_classifier_and_cfg_file()
 
             for hdf_file in hdf_files:
+                # if hdf_file not in error_unaligned_mea_files:
+                #     continue
                 logger.info(f"Processing file: {hdf_file}")
                 self._process_raw_file(hdf_file)
                 logger.info(f"Successfully processed: {hdf_file}")
@@ -501,7 +569,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--mea_channel_classifier_path",
         type=str,
-        default="./MeaChannelClassification/modeling/mea-channel-classification_2025-02-20_17:25:52_model.joblib",
+        default="./MeaChannelClassification/modeling/mea-channel-classification_2025-03-04_01:59:51_model.joblib",
         help="Path to the MEA channel classifier file",
     )
     parser.add_argument(

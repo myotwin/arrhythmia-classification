@@ -31,38 +31,26 @@ def butter_lowpass(cutoff, fs, order=5):
     return b, a
 
 
-def butter_lowpass_filter(data, cutoff, fs, order=5):
+def butter_lowpass_unormalized(cutoff, fs, order=5):
     """
-    This low pass filter uses scipy's butter_lowpass method which comes with phase shift.
+    Design an Nth-order digital or analog Butterworth filter and return the filter coefficients without normalizing the cutoff frequency.
+    Scipy's butter filter creator...
 
     Parameters
     ----------
-    data : pd.Series or np.array or such
-        Data
-
     cutoff : float
-        Cutoff frequency for the lowpass filter.
+        Cutoff frequency for the low pass.
 
     fs : float
-        Sampling frequency of the data.
+        Sampling frequency.
 
     order : int
         Order of the filter.
-
-    Returns
-    -------
-    y : ndarray
-        Filtered data.
-
-    b, a : ndarray
-        The return values from the butter_lowpass function.
     """
-    b, a = butter_lowpass(cutoff, fs, order=order)
-    y = signal.lfilter(b, a, data)
-    return y, b, a
+    return signal.butter(order, cutoff, fs=fs, btype="low", analog=False)
 
 
-def filter_lowpass(data, cutoff, fs, order=2):
+def filter_lowpass(data, cutoff, fs, order=2, unormalized_cutoff=False):
     """
     This low pass filter uses scipy's filtfilt method which comes without phase shift.
 
@@ -88,7 +76,10 @@ def filter_lowpass(data, cutoff, fs, order=2):
     b, a : ndarray
         The return values from the butter_lowpass function.
     """
-    b, a = butter_lowpass(cutoff, fs, order)
+    if not unormalized_cutoff:
+        b, a = butter_lowpass(cutoff, fs, order)
+    else:
+        b, a = butter_lowpass_unormalized(cutoff, fs, order)
     y = signal.filtfilt(b, a, data, method="gust")
     return y, b, a
 
